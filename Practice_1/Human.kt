@@ -1,5 +1,9 @@
+package Practice_1
+
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.sin
 import kotlin.random.Random
-import kotlin.math.*
 
 open class Human
 {
@@ -42,7 +46,7 @@ open class Human
     fun GaussMarkovMove(){
         var speed = (1..20).random().toDouble()
         var direction = (0..360).random().toDouble()
-        speed = 0.8 * speed + 0.2 * (1.0 + Random.nextDouble() * 5.0)
+        speed = 0.8 * speed + 0.2 * (1.0 + Random.Default.nextDouble() * 5.0)
         val directionRad = direction * PI / 180.0
         val newX = x + (speed * cos(directionRad)).toInt()
         val newY = y + (speed * sin(directionRad)).toInt()
@@ -51,41 +55,3 @@ open class Human
         println("$name is moved TO: $x,$y Gauss-Markov")
     }
 }
-class Driver(name: String, surname: String, second_name: String, val licenseCategory: String):
-    Human(name, surname,  second_name, -1) {
-
-
-    override fun move() {
-        Thread {
-        x += 15
-        y += 10
-        println("Driver $name drives straight to: $x,$y")
-    }.start()
-    }
-}
-
-fun main(){
-    val humans = arrayOf(
-        Human("Petya", "Ivanov", "Petrovich", 444),
-        Human("Ivan", "Petrov", "Ivanovich", 444),
-        Human("Maria", "Sidorova", "Alexandrovna", 444),
-        Human("Alex", "Smirnov", "Sergeevich", 444),
-        Human("Olga", "Kuznetsova", "Dmitrievna", 444),
-        Human("Dmitry", "Kuplinov", "Vasilievich", 444),
-        Human("Dauren", "Dauletovich", "Kystaubayev", 444),
-        Human("Sergey", "Kozlov", "Olegovich", 444),
-        Human("Elena", "Novikova", "Viktorovna", 444),
-        Human("Andrey", "Morozov", "Nikolaevich", 444),
-        Human("Tatiana", "Pavlova", "Pavlovna", 444),
-        Human("Nikolay", "Orlov", "Anatolievich", 444),
-        Human("Irina", "Volkova", "Fedorovna", 444),
-        Human("Vladimir", "Soloviev", "Vladimirovich", 444),)
-    
-    val Maxim: Driver = Driver("Maxim", "Evgenievich", "Golopolosov","C")
-
-    for (human in humans) {
-           human.move()
-    }
-    Maxim.move()
-    Thread.sleep(2000)
-    }
