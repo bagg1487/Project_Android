@@ -1,6 +1,7 @@
 package com.example.myapplication
 
 import android.os.Bundle
+import android.util.Log
 import android.widget.TextView
 import android.widget.Button
 import androidx.activity.enableEdgeToEdge
@@ -8,7 +9,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 
-class MainActivity : AppCompatActivity() {
+class calculator : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -56,20 +57,24 @@ class MainActivity : AppCompatActivity() {
         }
         findViewById<Button>(R.id.equals).setOnClickListener {
             val text = currentText.split("*", "/", "-", "+")
-            val firstNumber = text[0].toDouble()
-            val secondNumber = text[1].toDouble()
-            for (symb in currentText){
-                if(symb == '/'){
-                    textView.text = (firstNumber / secondNumber).toString()
-                }
-                if(symb == '*'){
-                    textView.text = (firstNumber * secondNumber).toString()
-                }
-                if(symb == '-'){
-                    textView.text = (firstNumber - secondNumber).toString()
-                }
-                if(symb == '+'){
-                    textView.text = (firstNumber + secondNumber).toString()
+            Log.w("myapp", currentText)
+
+            if (currentText.length != 0){
+                val firstNumber = text[0].toDouble()
+                val secondNumber = text[1].toDouble()
+                for (symb in currentText) {
+                    if (symb == '/') {
+                        textView.text = (firstNumber / secondNumber).toString()
+                    }
+                    if (symb == '*') {
+                        textView.text = (firstNumber * secondNumber).toString()
+                    }
+                    if (symb == '-') {
+                        textView.text = (firstNumber - secondNumber).toString()
+                    }
+                    if (symb == '+') {
+                        textView.text = (firstNumber + secondNumber).toString()
+                    }
                 }
             }
             }

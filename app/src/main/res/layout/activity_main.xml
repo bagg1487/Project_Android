@@ -6,7 +6,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#231933"
-    tools:context=".MainActivity">
+    tools:context=".calculator">
 
     <Button
         android:id="@+id/number8"
