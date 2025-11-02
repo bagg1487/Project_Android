@@ -5,7 +5,7 @@
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#231933"
+    android:background="#090909"
     tools:context=".calculator">
 
     <Button
@@ -146,7 +146,6 @@
         android:id="@+id/textView"
         android:layout_width="239dp"
         android:layout_height="111dp"
-        android:text="TextView"
         android:textColor="#E2E2E2"
         android:textSize="48sp"
         app:layout_constraintBottom_toBottomOf="parent"

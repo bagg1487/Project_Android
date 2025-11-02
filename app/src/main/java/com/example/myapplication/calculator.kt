@@ -10,22 +10,32 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 
 class calculator : AppCompatActivity() {
+    private lateinit var textView: TextView
+    private var currentText: String = ""
+    private lateinit var buttonsID: List<Int>
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        setContentView(R.layout.activity_main)
+        setContentView(R.layout.activity_calc)
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
-            insets }
+            insets
+        }
+            textView = findViewById<TextView>(R.id.textView)
+            currentText = ""
+            buttonsID = listOf(
+                R.id.number0, R.id.number1, R.id.number2, R.id.number3, R.id.number4,
+                R.id.number5, R.id.number6, R.id.number7, R.id.number8, R.id.number9
+            )
 
-        val textView = findViewById<TextView>(R.id.textView)
-        var currentText = ""
-        val buttonsID = listOf(
-            R.id.number0, R.id.number1, R.id.number2, R.id.number3, R.id.number4,
-            R.id.number5, R.id.number6, R.id.number7, R.id.number8, R.id.number9
-        )
+    }
+
+
+    override fun onResume() {
+            super.onResume()
+
         for(i in 0..buttonsID.size - 1){
             val buttonID = buttonsID[i]
             val button = findViewById<Button>(buttonID)
@@ -79,6 +89,7 @@ class calculator : AppCompatActivity() {
             }
             }
         }
+    }
 
-}
+
 
