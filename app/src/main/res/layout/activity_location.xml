@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#090909"
+    android:padding="16dp"
+    tools:context=".location">
+
+    <TextView
+        android:id="@+id/tvLocationTitle"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="Данные местоположения"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:textColor="#E0E0E0"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginBottom="24dp" />
+
+    <TextView
+        android:id="@+id/tvLatitude"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="Широта: -"
+        android:textSize="18sp"
+        android:textColor="#E0E0E0"
+        app:layout_constraintTop_toBottomOf="@+id/tvLocationTitle"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginBottom="8dp" />
+
+    <TextView
+        android:id="@+id/tvLongitude"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="Долгота: -"
+        android:textSize="18sp"
+        android:textColor="#E0E0E0"
+        app:layout_constraintTop_toBottomOf="@+id/tvLatitude"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginBottom="8dp" />
+
+    <TextView
+        android:id="@+id/tvAltitude"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="Высота: -"
+        android:textSize="18sp"
+        android:textColor="#E0E0E0"
+        app:layout_constraintTop_toBottomOf="@+id/tvLongitude"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginBottom="8dp" />
+
+    <TextView
+        android:id="@+id/tvTime"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="Время: -"
+        android:textSize="18sp"
+        android:textColor="#E0E0E0"
+        app:layout_constraintTop_toBottomOf="@+id/tvAltitude"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginBottom="24dp" />
+
+    <Button
+        android:id="@+id/update_button"
+        android:layout_width="136dp"
+        android:layout_height="62dp"
+        android:layout_marginTop="152dp"
+        android:text="Обновить"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+
+</androidx.constraintlayout.widget.ConstraintLayout>

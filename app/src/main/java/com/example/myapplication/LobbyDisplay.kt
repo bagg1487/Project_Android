@@ -30,6 +30,10 @@ class LobbyDisplay : AppCompatActivity() {
             val randomIntent = Intent(this, mediaplayer::class.java)
             startActivity(randomIntent)
         });
+        findViewById<Button>(R.id.loc).setOnClickListener({
+            val randomIntent = Intent(this, location::class.java)
+            startActivity(randomIntent)
+        });
         };
 }
 
