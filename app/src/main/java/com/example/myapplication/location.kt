@@ -93,8 +93,7 @@ class location : AppCompatActivity(), LocationListener {
             "latitude": ${location.latitude},
             "longitude": ${location.longitude},
             "altitude": ${location.altitude},
-            "time": "${getCurrentTime()}",
-            "provider": "${location.provider}"
+            "time": "${location.time}",
         }
         """.trimIndent()
 
@@ -116,7 +115,7 @@ class location : AppCompatActivity(), LocationListener {
                 tvLatitude.text = "Широта: ${lastLocation.latitude}"
                 tvLongitude.text = "Долгота: ${lastLocation.longitude}"
                 tvAltitude.text = "Высота: ${lastLocation.altitude}"
-                tvTime.text = "Время: ${getCurrentTime()}"
+                tvTime.text = "Время: ${lastLocation.time}"
 
                 saveLocationToJson(lastLocation)
             }
@@ -146,22 +145,11 @@ class location : AppCompatActivity(), LocationListener {
         }
     }
 
-    private fun isLocationEnabled(): Boolean {
-        return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) || locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
-    }
-
-    private fun getCurrentTime(): String {
-        val timeZone = TimeZone.getTimeZone("Asia/Novosibirsk")
-        val sdf = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
-        sdf.timeZone = timeZone
-        return sdf.format(Date())
-    }
-
     override fun onLocationChanged(location: Location) {
         tvLatitude.text = "Широта: ${location.latitude}"
         tvLongitude.text = "Долгота: ${location.longitude}"
         tvAltitude.text = "Высота: ${location.altitude}"
-        tvTime.text = "Время: ${getCurrentTime()}"
+        tvTime.text = "Время: ${location.time}"
 
         saveLocationToJson(location)
     }

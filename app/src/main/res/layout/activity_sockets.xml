@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:id="@+id/main"
+    android:background="@android:color/black">
+
+    <TextView
+        android:id="@+id/tvSockets"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+
+    <Button
+        android:id="@+id/btnSendToServer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Отправить на сервер" />
+
+    <Button
+        android:id="@+id/btnShowAllData"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Показать все данные" />
+
+    <TextView
+        android:id="@+id/tvLog"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginTop="20dp"
+        android:text="Лог:\n"
+        android:textSize="14sp"
+        android:textColor="@android:color/white"
+        android:background="#1E1E1E"
+        android:padding="10dp"/>
+
+
+
+</LinearLayout>

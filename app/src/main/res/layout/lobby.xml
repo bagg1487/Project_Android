@@ -35,9 +35,20 @@
         android:layout_width="134dp"
         android:layout_height="102dp"
         android:layout_marginTop="164dp"
-        android:text="Location"
+        android:text="location"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.146"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <Button
+        android:id="@+id/sock"
+        android:layout_width="134dp"
+        android:layout_height="102dp"
+        android:layout_marginTop="164dp"
+        android:text="sockets"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.809"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
