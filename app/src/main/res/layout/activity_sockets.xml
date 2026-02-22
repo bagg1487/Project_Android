@@ -15,7 +15,9 @@
         android:background="#2A2A2A"
         android:padding="8dp"
         android:layout_marginBottom="8dp"
-        android:inputType="phone" />
+        android:inputType="phone"
+        android:hint="Введите IP сервера"
+        android:textColorHint="#888888" />
 
     <Button
         android:id="@+id/btnCheckConnection"
@@ -34,22 +36,46 @@
         android:padding="8dp"
         android:layout_marginBottom="8dp" />
 
+    <Button
+        android:id="@+id/btnCollectData"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Собрать данные о сетях"
+        android:layout_marginBottom="8dp" />
+
+
+
+    <TextView
+        android:id="@+id/tvDataDisplay"
+        android:layout_width="match_parent"
+        android:layout_height="98dp"
+        android:layout_marginBottom="8dp"
+        android:background="#2A2A2A"
+        android:padding="8dp"
+        android:scrollbars="vertical"
+        android:text="Собранные данные появятся здесь"
+        android:textColor="#FFFFFF"
+        android:textSize="12sp" />
+
     <TextView
         android:id="@+id/tvSockets"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
+        android:layout_height="wrap_content"
+        android:textColor="#FFFFFF" />
 
     <Button
         android:id="@+id/btnSendToServer"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Отправить на сервер" />
+        android:text="Отправить на сервер"
+        android:layout_marginBottom="8dp" />
 
     <Button
         android:id="@+id/btnShowAllData"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Показать все данные" />
+        android:text="Показать все данные"
+        android:layout_marginBottom="8dp" />
 
     <TextView
         android:id="@+id/tvLog"
