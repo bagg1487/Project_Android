@@ -11,6 +11,8 @@ import android.location.LocationListener
 import android.location.LocationManager
 import android.os.Bundle
 import android.os.Environment
+import android.os.Handler
+import android.os.Looper
 import android.provider.Settings
 import android.util.Log
 import android.widget.Button
@@ -40,6 +42,14 @@ class location : AppCompatActivity(), LocationListener {
     val LOG_TAG: String = "LOCATION_ACTIVITY"
     private var hasAllPermissions = false
 
+    private lateinit var handler: Handler
+    private val locationRunnable = object : Runnable {
+        override fun run() {
+            updateCurrentLocation()
+            handler.postDelayed(this, 5000)
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -57,6 +67,8 @@ class location : AppCompatActivity(), LocationListener {
 
         locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
 
+        handler = Handler(Looper.getMainLooper())
+
         update_button.setOnClickListener {
             checkAndRequestPermissions()
             updateCurrentLocation()
@@ -66,6 +78,12 @@ class location : AppCompatActivity(), LocationListener {
     override fun onResume() {
         super.onResume()
         checkAndRequestPermissions()
+        handler.post(locationRunnable)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        handler.removeCallbacks(locationRunnable)
     }
 
     private fun checkAndRequestPermissions() {
@@ -87,24 +105,40 @@ class location : AppCompatActivity(), LocationListener {
         }
     }
 
+    private fun formatTime(timestamp: Long): String {
+        val date = Date(timestamp)
+        val format = SimpleDateFormat("dd.MM.yyyy HH:mm:ss", Locale.getDefault())
+        return format.format(date)
+    }
+
     private fun saveLocationToJson(location: Location) {
+        try {
             val jsonData = """
         {
             "latitude": ${location.latitude},
             "longitude": ${location.longitude},
             "altitude": ${location.altitude},
-            "time": "${location.time}",
+            "time": ${location.time}
         }
         """.trimIndent()
 
-
             val fileName = "location_${System.currentTimeMillis()}.json"
             val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+
+            if (!downloadsDir.exists()) {
+                downloadsDir.mkdirs()
+            }
+
             val file = File(downloadsDir, fileName)
 
             FileOutputStream(file).use { fos ->
                 fos.write(jsonData.toByteArray())
             }
+
+            Log.d(LOG_TAG, " Сохранено: $fileName")
+        } catch (e: Exception) {
+            Log.e(LOG_TAG, " Ошибка: ${e.message}")
+        }
     }
 
     private fun updateCurrentLocation() {
@@ -115,7 +149,7 @@ class location : AppCompatActivity(), LocationListener {
                 tvLatitude.text = "Широта: ${lastLocation.latitude}"
                 tvLongitude.text = "Долгота: ${lastLocation.longitude}"
                 tvAltitude.text = "Высота: ${lastLocation.altitude}"
-                tvTime.text = "Время: ${lastLocation.time}"
+                tvTime.text = "Время: ${formatTime(lastLocation.time)}"
 
                 saveLocationToJson(lastLocation)
             }
@@ -149,11 +183,10 @@ class location : AppCompatActivity(), LocationListener {
         tvLatitude.text = "Широта: ${location.latitude}"
         tvLongitude.text = "Долгота: ${location.longitude}"
         tvAltitude.text = "Высота: ${location.altitude}"
-        tvTime.text = "Время: ${location.time}"
+        tvTime.text = "Время: ${formatTime(location.time)}"
 
         saveLocationToJson(location)
     }
-
 
     override fun onStatusChanged(provider: String, status: Int, extras: Bundle) {}
     override fun onProviderEnabled(provider: String) {}

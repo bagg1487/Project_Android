@@ -1,11 +1,38 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@android:color/black"
     android:orientation="vertical"
-    android:padding="16dp"
-    android:id="@+id/main"
-    android:background="@android:color/black">
+    android:padding="16dp">
+
+    <EditText
+        android:id="@+id/etServerIP"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textColor="@android:color/white"
+        android:background="#2A2A2A"
+        android:padding="8dp"
+        android:layout_marginBottom="8dp"
+        android:inputType="phone" />
+
+    <Button
+        android:id="@+id/btnCheckConnection"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Проверить соединение"
+        android:layout_marginBottom="8dp" />
+
+    <TextView
+        android:id="@+id/tvConnectionStatus"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Не подключено"
+        android:textColor="#FF0000"
+        android:gravity="center"
+        android:padding="8dp"
+        android:layout_marginBottom="8dp" />
 
     <TextView
         android:id="@+id/tvSockets"
@@ -29,12 +56,10 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_marginTop="20dp"
-        android:text="Лог:\n"
-        android:textSize="14sp"
-        android:textColor="@android:color/white"
         android:background="#1E1E1E"
-        android:padding="10dp"/>
-
-
+        android:padding="10dp"
+        android:text="Лог:\n"
+        android:textColor="@android:color/white"
+        android:textSize="14sp" />
 
 </LinearLayout>
