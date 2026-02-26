@@ -1,1 +1,1 @@
-[Server](https://github.com/bagg1487/Heap-Map/blob/main/examples/server.py) - сервер для Socket Activity
+[Server](https://github.com/bagg1487/Heap-Map/) - сервер для Socket Activity
