@@ -3,89 +3,83 @@
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@android:color/black"
     android:orientation="vertical"
-    android:padding="16dp">
+    android:background="#000000"
+    android:padding="8dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginBottom="8dp">
+
+        <Button
+            android:id="@+id/btnStartService"
+            android:layout_width="0dp"
+            android:layout_height="60dp"
+            android:layout_weight="1"
+            android:layout_marginEnd="4dp"
+            android:text="ЗАПУСТИТЬ"
+            android:textColor="#FFFFFF"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/btnStopService"
+            android:layout_width="0dp"
+            android:layout_height="60dp"
+            android:layout_weight="1"
+            android:layout_marginStart="4dp"
+            android:text="ОСТАНОВИТЬ"
+            android:textColor="#FFFFFF"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <Button
+        android:id="@+id/btnCheckConnection"
+        android:layout_width="match_parent"
+        android:layout_height="60dp"
+        android:layout_marginBottom="8dp"
+        android:text="ПРОВЕРИТЬ СОЕДИНЕНИЕ"
+        android:textColor="#FFFFFF"
+        android:textSize="14sp"
+        android:textStyle="bold" />
 
     <EditText
         android:id="@+id/etServerIP"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textColor="@android:color/white"
-        android:background="#2A2A2A"
-        android:padding="8dp"
         android:layout_marginBottom="8dp"
-        android:inputType="phone"
-        android:hint="Введите IP сервера"
+        android:background="#2A2A2A"
+        android:hint="IP сервера (по умолч. 172.20.10.2)"
+        android:padding="12dp"
+        android:text="172.20.10.2"
+        android:textColor="#FFFFFF"
         android:textColorHint="#888888" />
-
-    <Button
-        android:id="@+id/btnCheckConnection"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Проверить соединение"
-        android:layout_marginBottom="8dp" />
 
     <TextView
         android:id="@+id/tvConnectionStatus"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:gravity="center"
         android:text="Не подключено"
         android:textColor="#FF0000"
-        android:gravity="center"
-        android:padding="8dp"
-        android:layout_marginBottom="8dp" />
-
-    <Button
-        android:id="@+id/btnCollectData"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Собрать данные о сетях"
-        android:layout_marginBottom="8dp" />
-
-
-
-    <TextView
-        android:id="@+id/tvDataDisplay"
-        android:layout_width="match_parent"
-        android:layout_height="98dp"
-        android:layout_marginBottom="8dp"
-        android:background="#2A2A2A"
-        android:padding="8dp"
-        android:scrollbars="vertical"
-        android:text="Собранные данные появятся здесь"
-        android:textColor="#FFFFFF"
-        android:textSize="12sp" />
-
-    <TextView
-        android:id="@+id/tvSockets"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:textColor="#FFFFFF" />
-
-    <Button
-        android:id="@+id/btnSendToServer"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Отправить на сервер"
-        android:layout_marginBottom="8dp" />
-
-    <Button
-        android:id="@+id/btnShowAllData"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Показать все данные"
-        android:layout_marginBottom="8dp" />
+        android:textSize="16sp"
+        android:textStyle="bold" />
 
     <TextView
         android:id="@+id/tvLog"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_marginTop="20dp"
+        android:layout_height="0dp"
+        android:layout_weight="1"
         android:background="#1E1E1E"
-        android:padding="10dp"
-        android:text="Лог:\n"
-        android:textColor="@android:color/white"
-        android:textSize="14sp" />
+        android:padding="8dp"
+        android:scrollbars="vertical"
+        android:text="Ready..."
+        android:textColor="#00FF00"
+        android:textSize="12sp"
+        android:typeface="monospace" />
 
 </LinearLayout>

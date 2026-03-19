@@ -4,10 +4,10 @@
     <selectionStates>
       <SelectionState runConfigName="app">
         <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2026-02-22T12:40:41.906466600Z">
+        <DropdownSelection timestamp="2026-02-26T05:29:25.369439100Z">
           <Target type="DEFAULT_BOOT">
             <handle>
-              <DeviceId pluginId="PhysicalDevice" identifier="serial=PSP72372903180" />
+              <DeviceId pluginId="LocalEmulator" identifier="path=C:\Users\kuten\.android\avd\Small_Phone.avd" />
             </handle>
           </Target>
         </DropdownSelection>
