@@ -6,23 +6,25 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.location.Location
-import android.location.LocationListener
 import android.location.LocationManager
 import android.net.TrafficStats
 import android.os.*
-import android.telephony.*
 import android.util.Log
 import android.widget.*
+import androidx.annotation.RequiresPermission
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
+import androidx.lifecycle.lifecycleScope
 import org.json.JSONObject
 import org.zeromq.SocketType
 import org.zeromq.ZContext
 import org.zeromq.ZMQ
 import java.io.File
+import java.lang.ref.WeakReference
 import java.text.SimpleDateFormat
 import java.util.*
+import java.util.concurrent.ConcurrentLinkedQueue
 import kotlinx.coroutines.*
 
 class sockets : AppCompatActivity() {
@@ -31,8 +33,6 @@ class sockets : AppCompatActivity() {
     private lateinit var etServerIP: EditText
     private lateinit var tvLog: TextView
     private lateinit var btnCheckConnection: Button
-
-    private val handler = Handler(Looper.getMainLooper())
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -51,7 +51,7 @@ class sockets : AppCompatActivity() {
         requestPermissions()
 
         btnCheckConnection.setOnClickListener {
-            val ip = etServerIP.text.toString()
+            val ip = etServerIP.text.toString().trim()
             if (ip.isNotEmpty()) {
                 DataCollectorService.serverIP = ip
             }
@@ -70,22 +70,24 @@ class sockets : AppCompatActivity() {
                 setSound(null, null)
             }
             val notificationManager = getSystemService(NotificationManager::class.java)
-            notificationManager.createNotificationChannel(channel)
+            notificationManager?.createNotificationChannel(channel)
         }
     }
 
     private fun requestPermissions() {
-        val perms = arrayOf(
+        val perms = mutableListOf(
             Manifest.permission.ACCESS_FINE_LOCATION,
             Manifest.permission.ACCESS_COARSE_LOCATION,
-            Manifest.permission.READ_PHONE_STATE,
-            Manifest.permission.FOREGROUND_SERVICE,
-            Manifest.permission.POST_NOTIFICATIONS,
-            Manifest.permission.WAKE_LOCK
-        )
+            Manifest.permission.READ_PHONE_STATE
+        ).apply {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) add(Manifest.permission.FOREGROUND_SERVICE)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) add(Manifest.permission.POST_NOTIFICATIONS)
+        }
+
         val req = perms.filter {
             ActivityCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
         }
+
         if (req.isNotEmpty()) {
             ActivityCompat.requestPermissions(this, req.toTypedArray(), 1)
         } else {
@@ -109,52 +111,53 @@ class sockets : AppCompatActivity() {
     }
 
     private fun startBackgroundService() {
-        val ip = etServerIP.text.toString()
+        val ip = etServerIP.text.toString().trim()
         if (ip.isNotEmpty()) {
             DataCollectorService.serverIP = ip
         }
-        startService(Intent(this, DataCollectorService::class.java))
+        val intent = Intent(this, DataCollectorService::class.java)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(intent)
+        } else {
+            startService(intent)
+        }
         log("Background service started automatically")
     }
 
     private fun checkConnection() {
-        log("Checking connection to ${DataCollectorService.serverIP}:${DataCollectorService.port}...")
+        val currentIp = DataCollectorService.serverIP
+        log("Checking connection to $currentIp:${DataCollectorService.port}...")
         btnCheckConnection.isEnabled = false
         tvConnectionStatus.text = "Connecting..."
         tvConnectionStatus.setTextColor(0xFFFFFF00.toInt())
 
-        Thread {
-            val ok = sendPing()
-            handler.post {
+        lifecycleScope.launch(Dispatchers.IO) {
+            val ok = sendPing(currentIp)
+            withContext(Dispatchers.Main) {
                 btnCheckConnection.isEnabled = true
-                log("Connection check result: $ok")
-                if (ok) {
-                    tvConnectionStatus.text = "Connected"
-                    tvConnectionStatus.setTextColor(0xFF00FF00.toInt())
-                    log("Connected to server!")
-                } else {
-                    tvConnectionStatus.text = "Connection failed"
-                    tvConnectionStatus.setTextColor(0xFFFF0000.toInt())
-                    log("Failed to connect to ${DataCollectorService.serverIP}:${DataCollectorService.port}")
-                }
+                tvConnectionStatus.text = if (ok) "Connected" else "Connection failed"
+                tvConnectionStatus.setTextColor(if (ok) 0xFF00FF00.toInt() else 0xFFFF0000.toInt())
+                log(if (ok) "Connected to server!" else "Failed to connect to $currentIp")
             }
-        }.start()
+        }
     }
 
-    private fun sendPing(): Boolean {
+    private fun sendPing(ip: String): Boolean {
         return try {
             ZContext().use { ctx ->
-                val socket = ctx.createSocket(SocketType.REQ)
-                socket.setReceiveTimeOut(3000)
-                socket.connect("tcp://${DataCollectorService.serverIP}:${DataCollectorService.port}")
-                socket.send("ping".toByteArray(), 0)
-                val response = socket.recv(0)
-                if (response != null) {
-                    val responseStr = String(response, ZMQ.CHARSET).trim()
-                    log("Server response: '$responseStr'")
-                    responseStr.startsWith("pong")
-                } else {
-                    false
+                ctx.createSocket(SocketType.REQ).use { socket ->
+                    socket.receiveTimeOut = 5000
+                    socket.sendTimeOut = 3000
+                    socket.connect("tcp://$ip:${DataCollectorService.port}")
+                    socket.send("ping".toByteArray(), 0)
+                    val response = socket.recv(0)
+                    if (response != null) {
+                        val responseStr = String(response, ZMQ.CHARSET).trim().replace("\u0000", "")
+                        log("Server response: '$responseStr'")
+                        responseStr == "pong"
+                    } else {
+                        false
+                    }
                 }
             }
         } catch (e: Exception) {
@@ -164,359 +167,223 @@ class sockets : AppCompatActivity() {
     }
 
     private fun log(msg: String) {
-        handler.post {
+        val activityRef = WeakReference(this)
+        lifecycleScope.launch(Dispatchers.Main) {
+            val activity = activityRef.get() ?: return@launch
             val sdf = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
             val time = sdf.format(Date())
-            tvLog.append("[$time] $msg\n")
+            activity.tvLog.append("[$time] $msg\n")
             try {
-                val layout = tvLog.layout
+                val layout = activity.tvLog.layout
                 if (layout != null) {
-                    val scrollAmount = layout.getLineTop(tvLog.lineCount) - tvLog.height
+                    val scrollAmount = layout.getLineTop(activity.tvLog.lineCount) - activity.tvLog.height
                     if (scrollAmount > 0) {
-                        tvLog.scrollTo(0, scrollAmount)
+                        activity.tvLog.scrollTo(0, scrollAmount)
                     }
                 }
-            } catch (e: Exception) { }
+            } catch (_: Exception) { }
         }
     }
 
     class DataCollectorService : Service() {
 
-        val LOG_TAG: String = "DATA_COLLECTOR"
+        private val LOG_TAG = "DATA_COLLECTOR"
+        private val NOTIFICATION_ID = 101
+
         private val serviceJob = Job()
-        private val serviceScope = CoroutineScope(Dispatchers.IO + serviceJob)
-
-        private val wakeLock: PowerManager.WakeLock by lazy {
-            val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
-            powerManager.newWakeLock(
-                PowerManager.PARTIAL_WAKE_LOCK,
-                "MyApp:LocationWakeLock"
-            )
-        }
-
-        private var currentLocation: Location? = null
-        private var isConnected = false
+        private val scope = CoroutineScope(Dispatchers.IO + serviceJob)
 
         companion object {
-            var serverIP = "172.20.10.2"
+            @Volatile var serverIP = "172.20.10.2"
             const val port = 8080
-
-            var filterLocation = true
-            var filterTelephony = true
-            var filterTraffic = true
-            var filterLte = true
-            var filterGsm = true
-            var filterWcdma = true
         }
 
-        private val locationListener = object : LocationListener {
-            override fun onLocationChanged(location: Location) {
-                currentLocation = location
-            }
-            override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {}
-            override fun onProviderEnabled(provider: String) {}
-            override fun onProviderDisabled(provider: String) {}
-        }
+        private var context: ZContext? = null
+        private var socket: ZMQ.Socket? = null
 
+        @Volatile private var isConnected = false
+        private var zmqJob: Job? = null
+
+        private val sendQueue = ConcurrentLinkedQueue<File>()
+
+        @Volatile private var currentLocation: Location? = null
+
+        @RequiresPermission(allOf = [Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION])
         override fun onCreate() {
             super.onCreate()
-            Log.d(LOG_TAG, "Service onCreate started")
-            startForegroundService()
-            Log.d(LOG_TAG, "startForegroundService completed")
-
-            try {
-                wakeLock.acquire(10 * 60 * 1000L)
-                Log.d(LOG_TAG, "WakeLock acquired")
-            } catch (e: Exception) {
-                Log.e(LOG_TAG, "WakeLock error: ${e.message}")
-            }
-
+            startForegroundNotification()
+            startZmq()
             startLocation()
-            Log.d(LOG_TAG, "startLocation completed")
-
-            checkServerConnection()
-            Log.d(LOG_TAG, "checkServerConnection started")
-
-            startDataCollection()
-            Log.d(LOG_TAG, "startDataCollection started")
+            startLoop()
         }
 
-        private fun startForegroundService() {
-            val notificationIntent = Intent(this, sockets::class.java)
-            val pendingIntent = PendingIntent.getActivity(
-                this, 0, notificationIntent,
-                PendingIntent.FLAG_IMMUTABLE
-            )
-
+        private fun startForegroundNotification() {
             val notification = NotificationCompat.Builder(this, "location_channel")
-                .setContentTitle(" Location Collection Active")
-                .setContentText("Collecting location and cell tower data every 5 seconds")
-                .setSmallIcon(android.R.drawable.ic_dialog_map)
-                .setContentIntent(pendingIntent)
-                .setOngoing(true)
+                .setContentTitle("Сбор данных")
+                .setContentText("Приложение собирает метрики в фоновом режиме")
+                .setSmallIcon(android.R.drawable.ic_menu_compass)
                 .setPriority(NotificationCompat.PRIORITY_LOW)
-                .setCategory(NotificationCompat.CATEGORY_SERVICE)
+                .setOngoing(true)
                 .build()
-
-            startForeground(1, notification)
+            startForeground(NOTIFICATION_ID, notification)
         }
 
-        private fun checkServerConnection() {
-            serviceScope.launch {
-                isConnected = sendPing()
-                Log.d(LOG_TAG, "Initial connection status: $isConnected")
-                if (!isConnected) {
-                    delay(10000)
-                    checkServerConnection()
-                }
-            }
-        }
+        private fun startZmq() {
+            zmqJob?.cancel()
+            zmqJob = scope.launch {
+                while (isActive) {
+                    try {
+                        Log.d(LOG_TAG, "ZMQ: Connecting to $serverIP:$port")
 
-        private suspend fun sendPing(): Boolean {
-            return withContext(Dispatchers.IO) {
-                var result = false
-                try {
-                    Log.d(LOG_TAG, "Attempting to ping $serverIP:$port")
-                    ZContext().use { ctx ->
-                        val socket = ctx.createSocket(SocketType.REQ)
-                        socket.setReceiveTimeOut(5000)
-                        socket.connect("tcp://$serverIP:$port")
+                        closeZmqResources()
 
-                        val sent = socket.send("ping".toByteArray(), 0)
-                        Log.d(LOG_TAG, "Message sent: $sent")
+                        val ctx = ZContext()
+                        context = ctx
+                        val sock = ctx.createSocket(SocketType.REQ)
+                        socket = sock
 
-                        val response = socket.recv(0)
-                        if (response != null) {
-                            val responseStr = String(response, ZMQ.CHARSET).trim()
-                            Log.d(LOG_TAG, "Received: '$responseStr'")
-                            result = responseStr.startsWith("pong")
-                        } else {
-                            Log.e(LOG_TAG, "No response received (timeout)")
+                        sock.linger = 0
+                        sock.receiveTimeOut = 10000
+                        sock.sendTimeOut = 5000
+
+                        sock.connect("tcp://$serverIP:$port")
+
+                        Log.d(LOG_TAG, "ZMQ: Connected, sending ping...")
+                        sock.send("ping")
+
+                        val reply = sock.recv()
+                        if (reply != null) {
+                            val replyStr = String(reply, ZMQ.CHARSET).trim().replace("\u0000", "")
+                            Log.d(LOG_TAG, "ZMQ: Reply received: '$replyStr'")
+                            if (replyStr == "pong") {
+                                isConnected = true
+                                Log.d(LOG_TAG, "ZMQ: CONNECTED SUCCESSFULLY!")
+                                return@launch
+                            }
                         }
+                        isConnected = false
+                    } catch (e: Exception) {
+                        Log.e(LOG_TAG, "ZMQ: Connect error: ${e.message}")
+                        isConnected = false
                     }
-                } catch (e: Exception) {
-                    Log.e(LOG_TAG, "Ping error: ${e.message}")
-                }
-                Log.d(LOG_TAG, "Ping result: $result")
-                result
-            }
-        }
-
-        private fun startLocation() {
-            try {
-                val lm = getSystemService(Context.LOCATION_SERVICE) as LocationManager
-                if (ActivityCompat.checkSelfPermission(
-                        this,
-                        Manifest.permission.ACCESS_FINE_LOCATION
-                    ) != PackageManager.PERMISSION_GRANTED
-                ) return
-
-                lm.requestLocationUpdates(
-                    LocationManager.GPS_PROVIDER,
-                    5000, 5f, locationListener
-                )
-                lm.requestLocationUpdates(
-                    LocationManager.NETWORK_PROVIDER,
-                    5000, 5f, locationListener
-                )
-
-                currentLocation = lm.getLastKnownLocation(LocationManager.GPS_PROVIDER)
-                    ?: lm.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
-            } catch (e: Exception) { }
-        }
-
-        private fun startDataCollection() {
-            serviceScope.launch {
-                while (true) {
                     delay(5000)
-                    if (isConnected) {
-                        try {
-                            val data = collectAllData()
-                            if (data.length() > 0) {
-                                val file = saveJson(data)
-                                sendAllFiles()
-                            }
-                        } catch (e: Exception) { }
+                }
+            }
+        }
+
+        private fun reconnect() {
+            isConnected = false
+            startZmq()
+        }
+
+        private fun startLoop() {
+            scope.launch {
+                while (isActive) {
+                    delay(5000)
+                    try {
+                        val data = collectAllData()
+                        val file = saveJson(data)
+                        sendQueue.add(file)
+                        processQueue()
+                    } catch (e: Exception) {
+                        Log.e(LOG_TAG, "Loop error: ${e.message}")
                     }
                 }
             }
         }
 
-        private fun collectAllData(): JSONObject {
-            val json = JSONObject()
-            json.put("timestamp", System.currentTimeMillis())
+        private suspend fun processQueue() {
+            if (!isConnected) return
 
-            if (filterLocation && currentLocation != null) {
-                json.put("location", collectLocation())
-            }
+            while (sendQueue.isNotEmpty() && isConnected) {
+                val file = sendQueue.peek() ?: break
+                val ok = withContext(Dispatchers.IO) { sendFile(file) }
 
-            if (filterTelephony) {
-                val cellInfo = collectCellInfo()
-                if (cellInfo.length() > 0) {
-                    json.put("telephony", cellInfo)
-                }
-            }
-
-            if (filterTraffic) {
-                json.put("traffic", collectTraffic())
-            }
-
-            return json
-        }
-
-        private fun collectLocation(): JSONObject {
-            val json = JSONObject()
-            currentLocation?.let {
-                json.put("latitude", it.latitude)
-                json.put("longitude", it.longitude)
-                json.put("altitude", it.altitude)
-                json.put("accuracy", it.accuracy)
-                json.put("speed", it.speed)
-                json.put("bearing", it.bearing)
-                json.put("provider", it.provider)
-            }
-            return json
-        }
-
-        private fun collectCellInfo(): JSONObject {
-            val json = JSONObject()
-            try {
-                if (ActivityCompat.checkSelfPermission(
-                        this,
-                        Manifest.permission.ACCESS_FINE_LOCATION
-                    ) != PackageManager.PERMISSION_GRANTED
-                ) {
-                    return json
-                }
-
-                val tm = getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
-                val allCellInfo = tm.allCellInfo
-
-                if (allCellInfo != null && allCellInfo.isNotEmpty()) {
-                    var cellIndex = 0
-                    allCellInfo.forEach { cell ->
-                        val cellJson = JSONObject()
-                        var includeCell = false
-
-                        when (cell) {
-                            is CellInfoLte -> {
-                                if (filterLte) {
-                                    val identity = cell.cellIdentity
-                                    val strength = cell.cellSignalStrength
-                                    cellJson.put("type", "LTE")
-                                    cellJson.put("ci", identity.ci)
-                                    cellJson.put("pci", identity.pci)
-                                    cellJson.put("tac", identity.tac)
-                                    cellJson.put("earfcn", identity.earfcn)
-                                    cellJson.put("mcc", identity.mcc)
-                                    cellJson.put("mnc", identity.mnc)
-                                    cellJson.put("dbm", strength.dbm)
-                                    cellJson.put("rsrp", strength.dbm)
-                                    includeCell = true
-                                }
-                            }
-                            is CellInfoGsm -> {
-                                if (filterGsm) {
-                                    val identity = cell.cellIdentity
-                                    val strength = cell.cellSignalStrength
-                                    cellJson.put("type", "GSM")
-                                    cellJson.put("cid", identity.cid)
-                                    cellJson.put("lac", identity.lac)
-                                    cellJson.put("dbm", strength.dbm)
-                                    includeCell = true
-                                }
-                            }
-                            is CellInfoWcdma -> {
-                                if (filterWcdma) {
-                                    val identity = cell.cellIdentity
-                                    val strength = cell.cellSignalStrength
-                                    cellJson.put("type", "WCDMA")
-                                    cellJson.put("cid", identity.cid)
-                                    cellJson.put("lac", identity.lac)
-                                    cellJson.put("psc", identity.psc)
-                                    cellJson.put("dbm", strength.dbm)
-                                    includeCell = true
-                                }
-                            }
-                        }
-
-                        if (includeCell) {
-                            json.put("cell_$cellIndex", cellJson)
-                            cellIndex++
-                        }
-                    }
-                }
-            } catch (e: Exception) { }
-            return json
-        }
-
-        private fun collectTraffic(): JSONObject {
-            val json = JSONObject()
-            try {
-                json.put("total_rx_bytes", TrafficStats.getTotalRxBytes())
-                json.put("total_tx_bytes", TrafficStats.getTotalTxBytes())
-                json.put("mobile_rx_bytes", TrafficStats.getMobileRxBytes())
-                json.put("mobile_tx_bytes", TrafficStats.getMobileTxBytes())
-            } catch (e: Exception) { }
-            return json
-        }
-
-        private fun getHeapDir(): File {
-            val dir = File(getExternalFilesDir(null), "HeapMap")
-            if (!dir.exists()) dir.mkdirs()
-            return dir
-        }
-
-        private fun saveJson(data: JSONObject): File {
-            val fileName = "data_${System.currentTimeMillis()}.json"
-            val file = File(getHeapDir(), fileName)
-            file.writeText(data.toString())
-            return file
-        }
-
-        private suspend fun sendAllFiles() {
-            withContext(Dispatchers.IO) {
-                val files = getHeapDir().listFiles { f -> f.extension == "json" } ?: return@withContext
-                files.sortedBy { it.lastModified() }.forEach { file ->
-                    if (sendFile(file)) {
-                        file.delete()
-                    }
+                if (ok) {
+                    file.delete()
+                    sendQueue.poll()
+                } else {
+                    reconnect()
+                    break
                 }
             }
         }
 
         private fun sendFile(file: File): Boolean {
             return try {
-                ZContext().use { ctx ->
-                    val socket = ctx.createSocket(SocketType.REQ)
-                    socket.setReceiveTimeOut(5000)
-                    socket.connect("tcp://$serverIP:$port")
-                    socket.send(file.readText().toByteArray(ZMQ.CHARSET), 0)
-                    socket.recv(0) != null
-                }
+                if (!file.exists()) return true
+                val data = file.readText()
+
+                socket?.let { s ->
+                    s.send(data)
+                    val reply = s.recv()
+                    reply != null
+                } ?: false
             } catch (e: Exception) {
+                Log.e(LOG_TAG, "Send error: ${e.message}")
                 false
             }
         }
 
-        override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-            return START_STICKY
+        private fun collectAllData(): JSONObject {
+            return JSONObject().apply {
+                put("timestamp", System.currentTimeMillis())
+
+                currentLocation?.let {
+                    put("location", JSONObject().apply {
+                        put("latitude", it.latitude)
+                        put("longitude", it.longitude)
+                        put("altitude", it.altitude)
+                        put("accuracy", it.accuracy)
+                    })
+                }
+
+                put("traffic", JSONObject().apply {
+                    put("total_rx_bytes", TrafficStats.getTotalRxBytes())
+                    put("total_tx_bytes", TrafficStats.getTotalTxBytes())
+                })
+            }
         }
+
+        private fun saveJson(data: JSONObject): File {
+            val dir = File(getExternalFilesDir(null), "HeapMap")
+            if (!dir.exists()) dir.mkdirs()
+
+            val file = File(dir, "data_${System.currentTimeMillis()}.json")
+            file.writeText(data.toString())
+            return file
+        }
+
+        @RequiresPermission(allOf = [Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION])
+        private fun startLocation() {
+            try {
+                val lm = getSystemService(Context.LOCATION_SERVICE) as LocationManager
+                lm.requestLocationUpdates(
+                    LocationManager.GPS_PROVIDER,
+                    5000, 5f
+                ) { location ->
+                    currentLocation = location
+                }
+            } catch (e: Exception) {
+                Log.e(LOG_TAG, "Location setup failed: ${e.message}")
+            }
+        }
+
+        private fun closeZmqResources() {
+            try {
+                socket?.close()
+                context?.close()
+            } catch (_: Exception) {}
+            socket = null
+            context = null
+        }
+
+        override fun onBind(intent: Intent?): IBinder? = null
 
         override fun onDestroy() {
             super.onDestroy()
             serviceJob.cancel()
-            try {
-                val lm = getSystemService(Context.LOCATION_SERVICE) as LocationManager
-                lm.removeUpdates(locationListener)
-            } catch (e: Exception) { }
-            if (wakeLock.isHeld) {
-                wakeLock.release()
-            }
-            stopForeground(true)
-            Log.d(LOG_TAG, "Service destroyed")
+            closeZmqResources()
         }
-
-        override fun onBind(intent: Intent?): IBinder? = null
     }
 }
